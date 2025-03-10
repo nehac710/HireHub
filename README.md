@@ -25,9 +25,9 @@ envname\scripts\activate
 
 ```
 
---> Install the requirements :
+--> Install django within the environment :
 ```bash
-pip install -r requirements.txt
+pip install django
 
 ```
 
