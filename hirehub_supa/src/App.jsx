@@ -5,6 +5,7 @@ import ClientDashboard from './pages/ClientDashboard';
 import FreelancerDashboard from './pages/FreelancerDashboard';
 import JobPosting from './pages/JobPosting';
 import JobListing from './pages/JobListing';
+
 import './App.css';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
         <Route path="/test/freelancer-dashboard" element={<FreelancerDashboard />} />
         <Route path="/test/job-posting" element={<JobPosting />} />
         <Route path="/test/job-listing" element={<JobListing />} />
+        
       </Routes>
     </Router>
   );
