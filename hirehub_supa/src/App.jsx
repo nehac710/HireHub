@@ -3,6 +3,8 @@ import Home from './components/HomePage';
 import Navbar from './components/Navbar';
 import ClientDashboard from './pages/ClientDashboard';
 import FreelancerDashboard from './pages/FreelancerDashboard';
+import JobPosting from './pages/JobPosting';
+import JobListing from './pages/JobListing';
 import './App.css';
 
 function App() {
@@ -14,6 +16,8 @@ function App() {
         {/* Temporary test routes */}
         <Route path="/test/client-dashboard" element={<ClientDashboard />} />
         <Route path="/test/freelancer-dashboard" element={<FreelancerDashboard />} />
+        <Route path="/test/job-posting" element={<JobPosting />} />
+        <Route path="/test/job-listing" element={<JobListing />} />
       </Routes>
     </Router>
   );
