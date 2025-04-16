@@ -4,6 +4,7 @@ import '../styles/ClientDashboard.css';
 
 const ClientDashboard = () => {
   const [profile, setProfile] = useState(null);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -12,11 +13,9 @@ const ClientDashboard = () => {
     const fetchProfile = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          throw new Error('User not authenticated');
-        }
+        if (!user) throw new Error('User not authenticated');
 
+        // Fetch client profile
         const { data, error } = await supabase
           .from('client_profiles')
           .select('*')
@@ -25,10 +24,26 @@ const ClientDashboard = () => {
 
         if (error) throw error;
         setProfile(data);
+
+        // Fetch user's projects
+        fetchProjects(user.id);
       } catch (error) {
         setError(error.message);
       } finally {
         setLoading(false);
+      }
+    };
+
+    const fetchProjects = async (userId) => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('public_id, title')
+        .eq('client_id', userId);
+
+      if (error) {
+        console.error('Error fetching projects:', error);
+      } else {
+        setProjects(data);
       }
     };
 
@@ -46,10 +61,7 @@ const ClientDashboard = () => {
   const handleSave = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
+      if (!user) throw new Error('User not authenticated');
 
       const { error } = await supabase
         .from('client_profiles')
@@ -183,27 +195,16 @@ const ClientDashboard = () => {
         <div className="recent-activity">
           <h3>Recent Activity</h3>
           <div className="activity-list">
-            <div className="activity-item">
-              <div className="activity-icon">📝</div>
-              <div className="activity-content">
-                <p>Posted a new project</p>
-                <span className="activity-time">2 hours ago</span>
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-icon">💬</div>
-              <div className="activity-content">
-                <p>Received a proposal</p>
-                <span className="activity-time">5 hours ago</span>
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-icon">✅</div>
-              <div className="activity-content">
-                <p>Project completed</p>
-                <span className="activity-time">1 day ago</span>
-              </div>
-            </div>
+            {projects.length === 0 ? (
+              <p>No projects found.</p>
+            ) : (
+              projects.map((project) => (
+                <div className="activity-item" key={project.public_id}>
+                  <h4>{project.title}</h4>
+                  <p><strong>Project ID:</strong> {project.public_id}</p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -211,4 +212,4 @@ const ClientDashboard = () => {
   );
 };
 
-export default ClientDashboard; 
+export default ClientDashboard;
