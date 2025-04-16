@@ -59,7 +59,7 @@ const FreelancerDashboard = () => {
           location: profile.location,
           bio: profile.bio,
           hourly_rate: profile.hourly_rate,
-          skills: profile.skills.split(',').map(skill => skill.trim()),
+          skills: profile.skills,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', user.id);
