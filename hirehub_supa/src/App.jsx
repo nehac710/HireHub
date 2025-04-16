@@ -23,8 +23,8 @@ function App() {
         <Route path="/profile-setup" element={<ProfileSetup />} />
         <Route path="/client-dashboard" element={<ClientDashboard />} />
         <Route path="/freelancer-dashboard" element={<FreelancerDashboard />} />
-        <Route path="/test/job-posting" element={<JobPosting />} />
-        <Route path="/test/job-listing" element={<JobListing />} />
+        <Route path="/job-posting" element={<JobPosting />} />
+        <Route path="/job-listing" element={<JobListing />} />
         <Route path="/client-profile-setup" element={<ClientProfileSetup />} />
         <Route path="/freelancer-profile-setup" element={<FreelancerProfileSetup />} />
       </Routes>
