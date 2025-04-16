@@ -11,8 +11,7 @@ const JobApplication = () => {
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     bid_amount: '',
-    proposal: '',
-    estimated_days: '',
+    proposal_text: '',
   });
 
   useEffect(() => {
@@ -32,14 +31,13 @@ const JobApplication = () => {
           .from('client_profiles')
           .select('display_name, company, location')
           .eq('user_id', projectData.client_id)
-          .maybeSingle();
+          .single();
 
         if (clientError) throw clientError;
 
-        // Combine the data
         setJob({
           ...projectData,
-          client_profiles: clientData || { display_name: 'Unknown', company: 'Unknown', location: 'Unknown' }
+          client_profiles: clientData
         });
       } catch (error) {
         setError(error.message);
@@ -81,14 +79,27 @@ const JobApplication = () => {
         return;
       }
 
-      // Submit application
+      // Validate bid amount
+      const bidAmount = parseFloat(formData.bid_amount);
+      if (isNaN(bidAmount) || bidAmount <= 0) {
+        setError('Please enter a valid bid amount');
+        return;
+      }
+
+      // Validate proposal text
+      if (!formData.proposal_text.trim()) {
+        setError('Please enter your proposal');
+        return;
+      }
+
+      // Submit bid
       const { error: submitError } = await supabase
         .from('bids')
         .insert({
           project_id: jobId,
           freelancer_id: user.id,
-          bid_amount: formData.bid_amount,
-          proposal_text: formData.proposal,
+          bid_amount: bidAmount,
+          proposal_text: formData.proposal_text,
           status: 'pending'
         });
 
@@ -108,7 +119,7 @@ const JobApplication = () => {
   return (
     <div className="job-application-container">
       <div className="job-application-content">
-        <h1>Apply for Job</h1>
+        <h1>Submit Your Bid</h1>
         
         <div className="job-details">
           <h2>{job.title}</h2>
@@ -116,7 +127,7 @@ const JobApplication = () => {
             Posted by {job.client_profiles.display_name} from {job.client_profiles.company}
           </p>
           <p className="location">{job.client_profiles.location}</p>
-          <p className="budget">Budget: ${job.budget_min} - ${job.budget_max}</p>
+          <p className="budget">Budget Range: ${job.budget_min} - ${job.budget_max}</p>
           <p className="deadline">Deadline: {new Date(job.deadline).toLocaleDateString()}</p>
           <div className="skills">
             <h3>Required Skills:</h3>
@@ -143,40 +154,31 @@ const JobApplication = () => {
               onChange={handleChange}
               min={job.budget_min}
               max={job.budget_max}
+              step="0.01"
+              placeholder="Enter your bid amount"
               required
             />
+            <small className="hint">Must be within the budget range</small>
           </div>
 
           <div className="form-group">
-            <label htmlFor="estimated_days">Estimated Days to Complete</label>
-            <input
-              type="number"
-              id="estimated_days"
-              name="estimated_days"
-              value={formData.estimated_days}
-              onChange={handleChange}
-              min="1"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="proposal">Your Proposal</label>
+            <label htmlFor="proposal_text">Your Proposal</label>
             <textarea
-              id="proposal"
-              name="proposal"
-              value={formData.proposal}
+              id="proposal_text"
+              name="proposal_text"
+              value={formData.proposal_text}
               onChange={handleChange}
-              rows="6"
-              required
+              rows="8"
               placeholder="Describe your approach to this project, your relevant experience, and why you're the best fit for this job."
+              required
             />
+            <small className="hint">Minimum 100 characters</small>
           </div>
 
           {error && <div className="error-message">{error}</div>}
 
           <button type="submit" className="submit-button">
-            Submit Application
+            Submit Bid
           </button>
         </form>
       </div>
