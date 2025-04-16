@@ -9,6 +9,7 @@ const JobApplication = () => {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notification, setNotification] = useState(null);
   const [formData, setFormData] = useState({
     bid_amount: '',
     proposal_text: '',
@@ -59,56 +60,63 @@ const JobApplication = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    setNotification(null);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        setError('Please log in to apply for this job');
         navigate('/login');
         return;
       }
 
       // Check if user is a freelancer
-      const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('id', user.id)
+      const { data: freelancerProfile } = await supabase
+        .from('freelancer_profiles')
+        .select('id')
+        .eq('user_id', user.id)
         .single();
 
-      if (profileError) throw profileError;
-      if (profile.role !== 'freelancer') {
+      if (!freelancerProfile) {
         setError('Only freelancers can apply for jobs');
         return;
       }
 
-      // Validate bid amount
-      const bidAmount = parseFloat(formData.bid_amount);
-      if (isNaN(bidAmount) || bidAmount <= 0) {
-        setError('Please enter a valid bid amount');
-        return;
-      }
-
-      // Validate proposal text
-      if (!formData.proposal_text.trim()) {
-        setError('Please enter your proposal');
-        return;
-      }
-
-      // Submit bid
-      const { error: submitError } = await supabase
+      // Check if freelancer has already bid on this project
+      const { data: existingBid } = await supabase
         .from('bids')
-        .insert({
-          project_id: jobId,
-          freelancer_id: user.id,
-          bid_amount: bidAmount,
-          proposal_text: formData.proposal_text,
-          status: 'pending'
-        });
+        .select('id')
+        .eq('project_id', jobId)
+        .eq('freelancer_id', freelancerProfile.id)
+        .single();
 
-      if (submitError) throw submitError;
+      if (existingBid) {
+        setNotification('You have already submitted a bid for this project');
+        return;
+      }
 
-      // Navigate back to job listings
-      navigate('/job-listing');
-    } catch (error) {
-      setError(error.message);
+      // Submit the bid
+      const { error: bidError } = await supabase
+        .from('bids')
+        .insert([
+          {
+            project_id: jobId,
+            freelancer_id: freelancerProfile.id,
+            bid_amount: formData.bid_amount,
+            proposal_text: formData.proposal_text,
+            status: 'pending'
+          }
+        ]);
+
+      if (bidError) throw bidError;
+
+      setNotification('Bid submitted successfully!');
+      setTimeout(() => {
+        navigate('/freelancer-dashboard');
+      }, 1500);
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -118,6 +126,16 @@ const JobApplication = () => {
 
   return (
     <div className="job-application-container">
+      {notification && (
+        <div className="notification">
+          {notification}
+        </div>
+      )}
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
       <div className="job-application-content">
         <h1>Submit Your Bid</h1>
         
@@ -174,8 +192,6 @@ const JobApplication = () => {
             />
             <small className="hint">Minimum 100 characters</small>
           </div>
-
-          {error && <div className="error-message">{error}</div>}
 
           <button type="submit" className="submit-button">
             Submit Bid

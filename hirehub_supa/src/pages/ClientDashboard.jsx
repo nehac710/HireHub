@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import '../styles/ClientDashboard.css';
+import { Link } from 'react-router-dom';
 
 const ClientDashboard = () => {
   const [profile, setProfile] = useState(null);
@@ -37,7 +38,7 @@ const ClientDashboard = () => {
     const fetchProjects = async (userId) => {
       const { data, error } = await supabase
         .from('projects')
-        .select('public_id, title')
+        .select('id, title, status, budget_min, budget_max')
         .eq('client_id', userId);
 
       if (error) {
@@ -199,10 +200,17 @@ const ClientDashboard = () => {
               <p>No projects found.</p>
             ) : (
               projects.map((project) => (
-                <div className="activity-item" key={project.public_id}>
-                  <h4>{project.title}</h4>
-                  <p><strong>Project ID:</strong> {project.public_id}</p>
-                </div>
+                <Link 
+                  to={`/bid-management/${project.id}`} 
+                  className="activity-item-link"
+                  key={project.id}
+                >
+                  <div className="activity-item">
+                    <h4>{project.title}</h4>
+                    <p><strong>Status:</strong> {project.status}</p>
+                    <p><strong>Budget:</strong> ${project.budget_min} - ${project.budget_max}</p>
+                  </div>
+                </Link>
               ))
             )}
           </div>

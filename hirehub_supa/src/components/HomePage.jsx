@@ -37,8 +37,8 @@ const HomePage = () => {
     <div className="home">
       <section className="hero">
         <div className="hero-content">
-          <h1>Find the Perfect Freelancer for Your Project</h1>
-          <p>Connect with top talent from around the world and get your work done efficiently</p>
+          <h1>From hustle to handshake</h1>
+          <p>HireHub connects clients and freelancers to make collaboration seamless</p>
           <div className="hero-buttons">
             <button 
               onClick={() => handleButtonClick('/test/job-posting')} 

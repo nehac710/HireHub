@@ -11,6 +11,7 @@ import JobApplication from './pages/JobApplication';
 import ProfileSetup from './pages/ProfileSetup';
 import ClientProfileSetup from './pages/ClientProfileSetup';
 import FreelancerProfileSetup from './pages/FreelancerProfileSetup';
+import BidManagement from './pages/BidManagement';
 import './App.css';
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
         <Route path="/job-application/:jobId" element={<JobApplication />} />
         <Route path="/client-profile-setup" element={<ClientProfileSetup />} />
         <Route path="/freelancer-profile-setup" element={<FreelancerProfileSetup />} />
+        <Route path="/bid-management/:projectId" element={<BidManagement />} />
       </Routes>
     </Router>
   );

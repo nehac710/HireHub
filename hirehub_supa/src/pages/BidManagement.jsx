@@ -1,145 +1,154 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import '../styles/BidManagement.css';
 
 const BidManagement = () => {
-  const [selectedBid, setSelectedBid] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+  const { projectId } = useParams();
+  const [project, setProject] = useState(null);
+  const [bids, setBids] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample data - in a real app, this would come from your backend
-  const project = {
-    id: '123',
-    title: 'Senior Web Developer Position',
-    description: 'Looking for an experienced web developer to build a modern e-commerce platform...',
-    budget: '$5000',
-    duration: '3 months',
+  useEffect(() => {
+    const fetchProjectAndBids = async () => {
+      try {
+        // Fetch project details
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
+
+        if (projectError) throw projectError;
+
+        // Fetch bids for this project
+        const { data: bidsData, error: bidsError } = await supabase
+          .from('bids')
+          .select('*')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false });
+
+        if (bidsError) throw bidsError;
+
+        // Fetch freelancer profiles for each bid
+        const bidsWithProfiles = await Promise.all(
+          bidsData.map(async (bid) => {
+            const { data: freelancerProfile } = await supabase
+              .from('freelancer_profiles')
+              .select('display_name, skills, rating')
+              .eq('user_id', bid.freelancer_id)
+              .single();
+
+            return {
+              ...bid,
+              freelancer_profile: freelancerProfile || {}
+            };
+          })
+        );
+
+        setProject(projectData);
+        setBids(bidsWithProfiles);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjectAndBids();
+  }, [projectId]);
+
+  const handleAcceptBid = async (bidId) => {
+    try {
+      // Update the bid status to accepted
+      const { error: updateError } = await supabase
+        .from('bids')
+        .update({ status: 'accepted' })
+        .eq('id', bidId);
+
+      if (updateError) throw updateError;
+
+      // Update all other bids for this project to rejected
+      const { error: rejectError } = await supabase
+        .from('bids')
+        .update({ status: 'rejected' })
+        .eq('project_id', projectId)
+        .neq('id', bidId);
+
+      if (rejectError) throw rejectError;
+
+      // Update project status
+      const { error: projectError } = await supabase
+        .from('projects')
+        .update({ status: 'in_progress' })
+        .eq('id', projectId);
+
+      if (projectError) throw projectError;
+
+      // Refresh the data
+      const { data: updatedBids } = await supabase
+        .from('bids')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+
+      setBids(updatedBids);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
-  const bids = [
-    {
-      id: '1',
-      freelancer: {
-        id: '789',
-        name: 'John Doe',
-        rating: 4.8,
-        completedProjects: 25,
-      },
-      bidAmount: '$4500',
-      proposalText: 'I have extensive experience in building e-commerce platforms...',
-      submittedAt: '2 days ago',
-      status: 'pending',
-    },
-    {
-      id: '2',
-      freelancer: {
-        id: '790',
-        name: 'Jane Smith',
-        rating: 4.9,
-        completedProjects: 30,
-      },
-      bidAmount: '$4800',
-      proposalText: 'I specialize in modern web development and have worked on similar projects...',
-      submittedAt: '1 day ago',
-      status: 'pending',
-    },
-  ];
-
-  const handleViewProposal = (bid) => {
-    setSelectedBid(bid);
-    setShowModal(true);
-  };
-
-  const handleAcceptBid = (bidId) => {
-    // In a real app, this would update the bid status in your backend
-    console.log('Accepting bid:', bidId);
-  };
-
-  const handleRejectBid = (bidId) => {
-    // In a real app, this would update the bid status in your backend
-    console.log('Rejecting bid:', bidId);
-  };
+  if (loading) return <div className="loading">Loading...</div>;
+  if (error) return <div className="error">{error}</div>;
+  if (!project) return <div className="error">Project not found</div>;
 
   return (
     <div className="bid-management-container">
-      <div className="bid-management-header">
-        <h1>Project Bids</h1>
+      <div className="project-details">
+        <h1>{project.title}</h1>
         <div className="project-info">
-          <h2>{project.title}</h2>
-          <p className="project-budget">Budget: {project.budget}</p>
-          <p className="project-duration">Duration: {project.duration}</p>
+          <p><strong>Description:</strong> {project.description}</p>
+          <p><strong>Budget Range:</strong> ${project.budget_min} - ${project.budget_max}</p>
+          <p><strong>Deadline:</strong> {new Date(project.deadline).toLocaleDateString()}</p>
+          <p><strong>Required Skills:</strong> {project.skills_required.join(', ')}</p>
+          <p><strong>Status:</strong> {project.status}</p>
         </div>
       </div>
 
-      <div className="bids-list">
-        {bids.map((bid) => (
-          <div key={bid.id} className="bid-card">
-            <div className="bid-header">
-              <div className="freelancer-info">
-                <h3>{bid.freelancer.name}</h3>
-                <div className="freelancer-stats">
-                  <span className="rating">⭐ {bid.freelancer.rating}</span>
-                  <span className="projects">Projects: {bid.freelancer.completedProjects}</span>
+      <div className="bids-section">
+        <h2>Bids Received</h2>
+        {bids.length === 0 ? (
+          <p>No bids received yet.</p>
+        ) : (
+          <div className="bids-list">
+            {bids.map((bid) => (
+              <div className="bid-card" key={bid.id}>
+                <div className="bid-header">
+                  <h3>{bid.freelancer_profile?.display_name || 'Unknown Freelancer'}</h3>
+                  <span className={`bid-status ${bid.status}`}>{bid.status}</span>
                 </div>
+                <div className="bid-details">
+                  <p><strong>Bid Amount:</strong> ${bid.bid_amount}</p>
+                  <p><strong>Estimated Days:</strong> {bid.estimated_days}</p>
+                  <p><strong>Proposal:</strong> {bid.proposal}</p>
+                  <p><strong>Freelancer Rating:</strong> {bid.freelancer_profile?.rating || 'Not rated yet'}</p>
+                  <p><strong>Skills:</strong> {bid.freelancer_profile?.skills?.join(', ') || 'No skills listed'}</p>
+                </div>
+                {project.status === 'open' && (
+                  <button
+                    className="accept-bid-button"
+                    onClick={() => handleAcceptBid(bid.id)}
+                    disabled={bid.status !== 'pending'}
+                  >
+                    Accept Bid
+                  </button>
+                )}
               </div>
-              <div className="bid-amount">
-                <span className="amount-label">Bid Amount</span>
-                <span className="amount">{bid.bidAmount}</span>
-              </div>
-            </div>
-
-            <div className="bid-actions">
-              <button
-                className="btn btn-outline"
-                onClick={() => handleViewProposal(bid)}
-              >
-                View Proposal
-              </button>
-              <div className="decision-buttons">
-                <button
-                  className="btn btn-reject"
-                  onClick={() => handleRejectBid(bid.id)}
-                >
-                  Reject
-                </button>
-                <button
-                  className="btn btn-accept"
-                  onClick={() => handleAcceptBid(bid.id)}
-                >
-                  Accept
-                </button>
-              </div>
-            </div>
-
-            <div className="bid-meta">
-              <span className="submitted-at">Submitted {bid.submittedAt}</span>
-              <span className={`status ${bid.status}`}>{bid.status}</span>
-            </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
-
-      {showModal && selectedBid && (
-        <div className="modal">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2>Proposal from {selectedBid.freelancer.name}</h2>
-              <button className="close-modal" onClick={() => setShowModal(false)}>
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <p>{selectedBid.proposalText}</p>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn btn-outline"
-                onClick={() => setShowModal(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
