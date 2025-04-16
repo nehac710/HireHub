@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import '../styles/ProfileSetup.css';
 
 const FreelancerProfileSetup = () => {
-  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    fullName: '',
+    display_name: '',
+    domain: '',
+    location: '',
     bio: '',
+    hourly_rate: '',
     skills: [],
-    experience: '',
-    portfolio: '',
-    hourlyRate: '',
-    availability: 'full-time',
-    education: '',
-    certifications: '',
   });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,181 +32,129 @@ const FreelancerProfileSetup = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // In a real app, this would submit to your backend
-    console.log('Freelancer profile setup completed:', formData);
-  };
+    setError(null);
+    setLoading(true);
 
-  const nextStep = () => {
-    setStep(prev => prev + 1);
-  };
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
 
-  const prevStep = () => {
-    setStep(prev => prev - 1);
-  };
+      const { error: profileError } = await supabase
+        .from('freelancer_profiles')
+        .insert([
+          {
+            user_id: user.id,
+            display_name: formData.display_name,
+            domain: formData.domain,
+            location: formData.location,
+            bio: formData.bio,
+            hourly_rate: parseFloat(formData.hourly_rate),
+            skills: formData.skills,
+          }
+        ]);
 
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div className="setup-step">
-            <h2>Basic Information</h2>
-            <p className="step-description">Tell us about yourself</p>
-            <div className="form-group">
-              <label htmlFor="fullName">Full Name</label>
-              <input
-                type="text"
-                id="fullName"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                placeholder="Enter your full name"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="bio">Professional Bio</label>
-              <textarea
-                id="bio"
-                name="bio"
-                value={formData.bio}
-                onChange={handleChange}
-                placeholder="Write a professional bio highlighting your expertise"
-                rows="4"
-                required
-              />
-            </div>
-          </div>
-        );
-      case 2:
-        return (
-          <div className="setup-step">
-            <h2>Professional Details</h2>
-            <p className="step-description">Help clients find you</p>
-            <div className="form-group">
-              <label htmlFor="skills">Skills (comma separated)</label>
-              <input
-                type="text"
-                id="skills"
-                name="skills"
-                value={formData.skills.join(', ')}
-                onChange={handleSkillChange}
-                placeholder="e.g., React, Node.js, UI/UX Design"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="experience">Years of Experience</label>
-              <input
-                type="number"
-                id="experience"
-                name="experience"
-                value={formData.experience}
-                onChange={handleChange}
-                placeholder="Enter years of experience"
-                min="0"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="hourlyRate">Hourly Rate ($)</label>
-              <input
-                type="number"
-                id="hourlyRate"
-                name="hourlyRate"
-                value={formData.hourlyRate}
-                onChange={handleChange}
-                placeholder="Enter your hourly rate"
-                min="0"
-                required
-              />
-            </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="setup-step">
-            <h2>Additional Information</h2>
-            <p className="step-description">Tell us more about your background</p>
-            <div className="form-group">
-              <label htmlFor="availability">Availability</label>
-              <select
-                id="availability"
-                name="availability"
-                value={formData.availability}
-                onChange={handleChange}
-                required
-              >
-                <option value="full-time">Full Time</option>
-                <option value="part-time">Part Time</option>
-                <option value="flexible">Flexible</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="education">Education</label>
-              <textarea
-                id="education"
-                name="education"
-                value={formData.education}
-                onChange={handleChange}
-                placeholder="List your educational background"
-                rows="3"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="certifications">Certifications</label>
-              <textarea
-                id="certifications"
-                name="certifications"
-                value={formData.certifications}
-                onChange={handleChange}
-                placeholder="List any relevant certifications"
-                rows="3"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="portfolio">Portfolio URL</label>
-              <input
-                type="url"
-                id="portfolio"
-                name="portfolio"
-                value={formData.portfolio}
-                onChange={handleChange}
-                placeholder="https://your-portfolio.com"
-              />
-            </div>
-          </div>
-        );
-      default:
-        return null;
+      if (profileError) throw profileError;
+
+      navigate('/freelancer-dashboard');
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="profile-setup-container">
       <div className="profile-setup-content">
-        <div className="progress-bar">
-          <div className="progress" style={{ width: `${(step / 3) * 100}%` }}></div>
-        </div>
+        <h2>Complete Your Freelancer Profile</h2>
+        <p className="step-description">Tell us about yourself to get started</p>
         <form onSubmit={handleSubmit} className="setup-form">
-          {renderStep()}
-          <div className="form-actions">
-            {step > 1 && (
-              <button type="button" className="btn btn-outline" onClick={prevStep}>
-                Back
-              </button>
-            )}
-            {step < 3 ? (
-              <button type="button" className="btn btn-primary" onClick={nextStep}>
-                Next
-              </button>
-            ) : (
-              <button type="submit" className="btn btn-primary">
-                Complete Setup
-              </button>
-            )}
+          {error && (
+            <div className="error-message">
+              <span>{error}</span>
+            </div>
+          )}
+          <div className="form-group">
+            <label htmlFor="display_name">Display Name</label>
+            <input
+              type="text"
+              id="display_name"
+              name="display_name"
+              value={formData.display_name}
+              onChange={handleChange}
+              placeholder="Enter your display name"
+              required
+            />
           </div>
+          <div className="form-group">
+            <label htmlFor="domain">Domain/Expertise</label>
+            <input
+              type="text"
+              id="domain"
+              name="domain"
+              value={formData.domain}
+              onChange={handleChange}
+              placeholder="e.g., Web Development, Graphic Design"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="location">Location</label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              placeholder="Enter your location"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="bio">Professional Bio</label>
+            <textarea
+              id="bio"
+              name="bio"
+              value={formData.bio}
+              onChange={handleChange}
+              placeholder="Tell us about your experience and expertise"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="hourly_rate">Hourly Rate ($)</label>
+            <input
+              type="number"
+              id="hourly_rate"
+              name="hourly_rate"
+              value={formData.hourly_rate}
+              onChange={handleChange}
+              placeholder="Enter your hourly rate"
+              min="0"
+              step="0.01"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="skills">Skills (comma separated)</label>
+            <input
+              type="text"
+              id="skills"
+              name="skills"
+              value={formData.skills.join(', ')}
+              onChange={handleSkillChange}
+              placeholder="e.g., React, Node.js, UI/UX Design"
+              required
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? 'Saving...' : 'Complete Profile'}
+          </button>
         </form>
       </div>
     </div>
