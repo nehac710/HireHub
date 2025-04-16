@@ -83,8 +83,8 @@ const JobListing = () => {
         return;
       }
 
-      // TODO: Implement application logic
-      console.log('Applying for job:', jobId);
+      // Navigate to job application form with job details
+      navigate(`/job-application/${jobId}`);
     } catch (error) {
       setError(error.message);
     }
