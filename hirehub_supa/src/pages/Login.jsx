@@ -3,12 +3,10 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import '../styles/SignUp.css';
 
-const SignUp = () => {
+const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    confirmPassword: '',
-    fullName: '',
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -26,29 +24,29 @@ const SignUp = () => {
     setError(null);
     setLoading(true);
 
-    // Validate passwords match
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
-
     try {
-      // Sign up the user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-          },
-        },
       });
 
-      if (authError) throw authError;
+      if (error) throw error;
 
-      // Redirect to profile setup page after successful signup
-      navigate('/profile-setup');
+      // Get user role from user_profiles table
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (roleError) throw roleError;
+
+      // Redirect based on role
+      if (roleData.role === 'client') {
+        navigate('/client-dashboard');
+      } else if (roleData.role === 'freelancer') {
+        navigate('/freelancer-dashboard');
+      }
     } catch (error) {
       setError(error.message);
     } finally {
@@ -59,23 +57,13 @@ const SignUp = () => {
   return (
     <div className="signup-container">
       <div className="signup-form">
-        <h2 className="signup-title">Create your account</h2>
+        <h2 className="signup-title">Sign in to your account</h2>
         <form onSubmit={handleSubmit}>
           {error && (
             <div className="error-message">
               <span>{error}</span>
             </div>
           )}
-          <div className="form-group">
-            <input
-              type="text"
-              name="fullName"
-              placeholder="Full Name"
-              value={formData.fullName}
-              onChange={handleChange}
-              required
-            />
-          </div>
           <div className="form-group">
             <input
               type="email"
@@ -96,26 +84,16 @@ const SignUp = () => {
               required
             />
           </div>
-          <div className="form-group">
-            <input
-              type="password"
-              name="confirmPassword"
-              placeholder="Confirm Password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-            />
-          </div>
           <button type="submit" className="signup-button" disabled={loading}>
-            {loading ? 'Signing up...' : 'Sign up'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
         <p className="login-link">
-          Already have an account? <a href="/login">Sign in</a>
+          Don't have an account? <a href="/signup">Sign up</a>
         </p>
       </div>
     </div>
   );
 };
 
-export default SignUp; 
+export default Login; 

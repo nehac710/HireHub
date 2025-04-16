@@ -207,4 +207,5 @@ const ClientProfileSetup = () => {
   );
 };
 
-export default ClientProfileSetup; 
+export default ClientProfileSetup;
+

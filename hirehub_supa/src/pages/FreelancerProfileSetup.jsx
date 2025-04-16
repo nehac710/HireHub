@@ -212,4 +212,4 @@ const FreelancerProfileSetup = () => {
   );
 };
 
-export default FreelancerProfileSetup; 
+export default FreelancerProfileSetup;
