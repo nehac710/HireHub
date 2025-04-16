@@ -1,19 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import '../styles/ClientDashboard.css';
 
 const ClientDashboard = () => {
-  const [profile, setProfile] = useState({
-    name: 'John Doe',
-    company: 'Tech Solutions Inc.',
-    email: 'john@techsolutions.com',
-    location: 'New York, USA',
-    bio: 'Looking for talented developers to join our team.',
-    rating: 4.5,
-    totalProjects: 12,
-    activeProjects: 3
-  });
-
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
+        const { data, error } = await supabase
+          .from('client_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) throw error;
+        setProfile(data);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -23,13 +43,63 @@ const ClientDashboard = () => {
     }));
   };
 
+  const handleSave = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { error } = await supabase
+        .from('client_profiles')
+        .update({
+          display_name: profile.display_name,
+          company: profile.company,
+          location: profile.location,
+          bio: profile.bio,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      setIsEditing(false);
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div className="loading">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <div className="error-message">{error}</div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="dashboard-container">
+        <div className="error-message">Profile not found. Please complete your profile setup.</div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
         <h1>Client Dashboard</h1>
         <button 
           className="btn btn-primary"
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={isEditing ? handleSave : () => setIsEditing(true)}
         >
           {isEditing ? 'Save Profile' : 'Edit Profile'}
         </button>
@@ -39,14 +109,14 @@ const ClientDashboard = () => {
         <div className="profile-section">
           <div className="profile-header">
             <div className="profile-avatar">
-              <span>{profile.name.charAt(0)}</span>
+              <span>{profile.display_name.charAt(0)}</span>
             </div>
             <div className="profile-info">
-              <h2>{profile.name}</h2>
+              <h2>{profile.display_name}</h2>
               <p className="company">{profile.company}</p>
               <div className="rating">
                 <span className="stars">★★★★★</span>
-                <span className="rating-value">{profile.rating}</span>
+                <span className="rating-value">4.5</span>
               </div>
             </div>
           </div>
@@ -54,11 +124,11 @@ const ClientDashboard = () => {
           <div className="profile-stats">
             <div className="stat-card">
               <h3>Total Projects</h3>
-              <p>{profile.totalProjects}</p>
+              <p>{profile.total_projects || 0}</p>
             </div>
             <div className="stat-card">
               <h3>Active Projects</h3>
-              <p>{profile.activeProjects}</p>
+              <p>{profile.active_projects || 0}</p>
             </div>
           </div>
 
@@ -66,11 +136,11 @@ const ClientDashboard = () => {
             {isEditing ? (
               <form className="edit-form">
                 <div className="form-group">
-                  <label>Name</label>
+                  <label>Display Name</label>
                   <input
                     type="text"
-                    name="name"
-                    value={profile.name}
+                    name="display_name"
+                    value={profile.display_name}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -80,15 +150,6 @@ const ClientDashboard = () => {
                     type="text"
                     name="company"
                     value={profile.company}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={profile.email}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -112,7 +173,6 @@ const ClientDashboard = () => {
               </form>
             ) : (
               <div className="profile-info-display">
-                <p><strong>Email:</strong> {profile.email}</p>
                 <p><strong>Location:</strong> {profile.location}</p>
                 <p><strong>Bio:</strong> {profile.bio}</p>
               </div>
