@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import '../styles/Navbar.css';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+  const isClientDashboard = location.pathname === '/client-dashboard';
+  const isFreelancerDashboard = location.pathname === '/freelancer-dashboard';
 
   return (
     <nav className="navbar">
@@ -13,8 +16,8 @@ const Navbar = () => {
         </div>
 
         <div className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
-          <Link to="/find-talent" className="nav-link">Find Talent</Link>
-          <Link to="/find-work" className="nav-link">Find Work</Link>
+          {!isFreelancerDashboard && <Link to="/test/job-posting" className="nav-link">Find Talent</Link>}
+          {!isClientDashboard && <Link to="/test/job-listing" className="nav-link">Find Work</Link>}
           <Link to="/why-hirehub" className="nav-link">Why HireHub</Link>
           <Link to="/signup" className="nav-button secondary">Sign Up</Link>
           <Link to="/login" className="nav-button primary">Sign In</Link>
