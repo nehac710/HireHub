@@ -9,7 +9,6 @@ const JobApplication = () => {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [hasExistingBid, setHasExistingBid] = useState(false);
   const [formData, setFormData] = useState({
     bid_amount: '',
     proposal_text: '',
@@ -35,21 +34,6 @@ const JobApplication = () => {
           .single();
 
         if (clientError) throw clientError;
-
-        // Check for existing bid
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: existingBid } = await supabase
-            .from('bids')
-            .select('id')
-            .eq('project_id', jobId)
-            .eq('freelancer_id', user.id)
-            .single();
-
-          if (existingBid) {
-            setHasExistingBid(true);
-          }
-        }
 
         setJob({
           ...projectData,
@@ -92,23 +76,6 @@ const JobApplication = () => {
       if (profileError) throw profileError;
       if (profile.role !== 'freelancer') {
         setError('Only freelancers can apply for jobs');
-        return;
-      }
-
-      // Check for existing bid
-      const { data: existingBid, error: bidCheckError } = await supabase
-        .from('bids')
-        .select('id')
-        .eq('project_id', jobId)
-        .eq('freelancer_id', user.id)
-        .single();
-
-      if (bidCheckError && bidCheckError.code !== 'PGRST116') {
-        throw bidCheckError;
-      }
-
-      if (existingBid) {
-        setHasExistingBid(true);
         return;
       }
 
@@ -176,57 +143,44 @@ const JobApplication = () => {
           </div>
         </div>
 
-        {hasExistingBid ? (
-          <div className="existing-bid-notice">
-            <h3>You've Already Submitted a Bid</h3>
-            <p>You have already placed a bid for this project. You can view your bid status in your dashboard.</p>
-            <button 
-              className="view-dashboard-button"
-              onClick={() => navigate('/freelancer-dashboard')}
-            >
-              View My Dashboard
-            </button>
+        <form onSubmit={handleSubmit} className="application-form">
+          <div className="form-group">
+            <label htmlFor="bid_amount">Your Bid Amount ($)</label>
+            <input
+              type="number"
+              id="bid_amount"
+              name="bid_amount"
+              value={formData.bid_amount}
+              onChange={handleChange}
+              min={job.budget_min}
+              max={job.budget_max}
+              step="0.01"
+              placeholder="Enter your bid amount"
+              required
+            />
+            <small className="hint">Must be within the budget range</small>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="application-form">
-            <div className="form-group">
-              <label htmlFor="bid_amount">Your Bid Amount ($)</label>
-              <input
-                type="number"
-                id="bid_amount"
-                name="bid_amount"
-                value={formData.bid_amount}
-                onChange={handleChange}
-                min={job.budget_min}
-                max={job.budget_max}
-                step="0.01"
-                placeholder="Enter your bid amount"
-                required
-              />
-              <small className="hint">Must be within the budget range</small>
-            </div>
 
-            <div className="form-group">
-              <label htmlFor="proposal_text">Your Proposal</label>
-              <textarea
-                id="proposal_text"
-                name="proposal_text"
-                value={formData.proposal_text}
-                onChange={handleChange}
-                rows="8"
-                placeholder="Describe your approach to this project, your relevant experience, and why you're the best fit for this job."
-                required
-              />
-              <small className="hint">Minimum 100 characters</small>
-            </div>
+          <div className="form-group">
+            <label htmlFor="proposal_text">Your Proposal</label>
+            <textarea
+              id="proposal_text"
+              name="proposal_text"
+              value={formData.proposal_text}
+              onChange={handleChange}
+              rows="8"
+              placeholder="Describe your approach to this project, your relevant experience, and why you're the best fit for this job."
+              required
+            />
+            <small className="hint">Minimum 100 characters</small>
+          </div>
 
-            {error && <div className="error-message">{error}</div>}
+          {error && <div className="error-message">{error}</div>}
 
-            <button type="submit" className="submit-button">
-              Submit Bid
-            </button>
-          </form>
-        )}
+          <button type="submit" className="submit-button">
+            Submit Bid
+          </button>
+        </form>
       </div>
     </div>
   );

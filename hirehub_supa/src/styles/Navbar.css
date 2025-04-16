@@ -94,6 +94,23 @@
   background-color: #4b5563;
 }
 
+.back-to-dashboard-button {
+  background-color: #000000;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-right: 1rem;
+  transition: all 0.2s ease;
+}
+
+.back-to-dashboard-button:hover {
+  background-color: #4338ca;
+  transform: translateY(-1px);
+}
+
 @media (max-width: 768px) {
   .hamburger {
     display: block;

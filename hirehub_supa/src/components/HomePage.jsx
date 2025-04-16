@@ -28,7 +28,7 @@ const HomePage = () => {
           </div>
         </div>
         <div className="hero-image">
-          <img src="/hero-illustration.svg" alt="Freelancing" />
+          <img src="src\assets\freelancer.jpg" alt="Freelancing" />
         </div>
       </section>
 

@@ -11,6 +11,7 @@ const Navbar = () => {
   const isClientDashboard = location.pathname === '/client-dashboard';
   const isFreelancerDashboard = location.pathname === '/freelancer-dashboard';
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+  const isDashboardPage = isClientDashboard || isFreelancerDashboard;
 
   useEffect(() => {
     // Check initial auth state
@@ -56,7 +57,17 @@ const Navbar = () => {
           {!isClientDashboard && <Link to="/job-listing" className="nav-link">Find Work</Link>}
           <Link to="/why-hirehub" className="nav-link">Why HireHub</Link>
           {isLoggedIn ? (
-            <button onClick={handleLogout} className="nav-button primary">Logout</button>
+            <>
+              {!isDashboardPage && (
+                <button 
+                  className="back-to-dashboard-button"
+                  onClick={() => navigate(isClientDashboard ? '/client-dashboard' : '/freelancer-dashboard')}
+                >
+                  Back to Dashboard
+                </button>
+              )}
+              <button onClick={handleLogout} className="nav-button primary">Logout</button>
+            </>
           ) : (
             <>
               <Link to="/signup" className="nav-button secondary">Sign Up</Link>
