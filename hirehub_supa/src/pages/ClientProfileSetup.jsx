@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import '../styles/ProfileSetup.css';
 
 const ClientProfileSetup = () => {
-  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    companyName: '',
-    companyDescription: '',
-    industry: '',
-    companySize: '',
+    display_name: '',
+    company: '',
     location: '',
-    website: '',
-    contactPerson: '',
-    contactEmail: '',
-    contactPhone: '',
+    bio: '',
   });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,184 +22,101 @@ const ClientProfileSetup = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // In a real app, this would submit to your backend
-    console.log('Client profile setup completed:', formData);
-  };
+    setError(null);
+    setLoading(true);
 
-  const nextStep = () => {
-    setStep(prev => prev + 1);
-  };
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
 
-  const prevStep = () => {
-    setStep(prev => prev - 1);
-  };
+      const { error: profileError } = await supabase
+        .from('client_profiles')
+        .insert([
+          {
+            user_id: user.id,
+            display_name: formData.display_name,
+            company: formData.company,
+            location: formData.location,
+            bio: formData.bio,
+          }
+        ]);
 
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div className="setup-step">
-            <h2>Company Information</h2>
-            <p className="step-description">Tell us about your company</p>
-            <div className="form-group">
-              <label htmlFor="companyName">Company Name</label>
-              <input
-                type="text"
-                id="companyName"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                placeholder="Enter your company name"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="companyDescription">Company Description</label>
-              <textarea
-                id="companyDescription"
-                name="companyDescription"
-                value={formData.companyDescription}
-                onChange={handleChange}
-                placeholder="Describe your company and its mission"
-                rows="4"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="industry">Industry</label>
-              <input
-                type="text"
-                id="industry"
-                name="industry"
-                value={formData.industry}
-                onChange={handleChange}
-                placeholder="e.g., Technology, Healthcare, Finance"
-                required
-              />
-            </div>
-          </div>
-        );
-      case 2:
-        return (
-          <div className="setup-step">
-            <h2>Company Details</h2>
-            <p className="step-description">Additional company information</p>
-            <div className="form-group">
-              <label htmlFor="companySize">Company Size</label>
-              <select
-                id="companySize"
-                name="companySize"
-                value={formData.companySize}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select company size</option>
-                <option value="1-10">1-10 employees</option>
-                <option value="11-50">11-50 employees</option>
-                <option value="51-200">51-200 employees</option>
-                <option value="201-500">201-500 employees</option>
-                <option value="501-1000">501-1000 employees</option>
-                <option value="1000+">1000+ employees</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="location">Location</label>
-              <input
-                type="text"
-                id="location"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="Enter company location"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="website">Company Website</label>
-              <input
-                type="url"
-                id="website"
-                name="website"
-                value={formData.website}
-                onChange={handleChange}
-                placeholder="https://your-company.com"
-              />
-            </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="setup-step">
-            <h2>Contact Information</h2>
-            <p className="step-description">How can freelancers reach you?</p>
-            <div className="form-group">
-              <label htmlFor="contactPerson">Contact Person</label>
-              <input
-                type="text"
-                id="contactPerson"
-                name="contactPerson"
-                value={formData.contactPerson}
-                onChange={handleChange}
-                placeholder="Name of the primary contact"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="contactEmail">Contact Email</label>
-              <input
-                type="email"
-                id="contactEmail"
-                name="contactEmail"
-                value={formData.contactEmail}
-                onChange={handleChange}
-                placeholder="contact@company.com"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="contactPhone">Contact Phone</label>
-              <input
-                type="tel"
-                id="contactPhone"
-                name="contactPhone"
-                value={formData.contactPhone}
-                onChange={handleChange}
-                placeholder="+1 (555) 123-4567"
-              />
-            </div>
-          </div>
-        );
-      default:
-        return null;
+      if (profileError) throw profileError;
+
+      navigate('/client-dashboard');
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="profile-setup-container">
       <div className="profile-setup-content">
-        <div className="progress-bar">
-          <div className="progress" style={{ width: `${(step / 3) * 100}%` }}></div>
-        </div>
+        <h2>Complete Your Client Profile</h2>
+        <p className="step-description">Tell us about yourself and your company</p>
         <form onSubmit={handleSubmit} className="setup-form">
-          {renderStep()}
-          <div className="form-actions">
-            {step > 1 && (
-              <button type="button" className="btn btn-outline" onClick={prevStep}>
-                Back
-              </button>
-            )}
-            {step < 3 ? (
-              <button type="button" className="btn btn-primary" onClick={nextStep}>
-                Next
-              </button>
-            ) : (
-              <button type="submit" className="btn btn-primary">
-                Complete Setup
-              </button>
-            )}
+          {error && (
+            <div className="error-message">
+              <span>{error}</span>
+            </div>
+          )}
+          <div className="form-group">
+            <label htmlFor="display_name">Display Name</label>
+            <input
+              type="text"
+              id="display_name"
+              name="display_name"
+              value={formData.display_name}
+              onChange={handleChange}
+              placeholder="Enter your display name"
+              required
+            />
           </div>
+          <div className="form-group">
+            <label htmlFor="company">Company Name</label>
+            <input
+              type="text"
+              id="company"
+              name="company"
+              value={formData.company}
+              onChange={handleChange}
+              placeholder="Enter your company name"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="location">Location</label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              placeholder="Enter your location"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="bio">Company Bio</label>
+            <textarea
+              id="bio"
+              name="bio"
+              value={formData.bio}
+              onChange={handleChange}
+              placeholder="Tell us about your company and what you're looking for"
+              required
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? 'Saving...' : 'Complete Profile'}
+          </button>
         </form>
       </div>
     </div>
@@ -208,4 +124,3 @@ const ClientProfileSetup = () => {
 };
 
 export default ClientProfileSetup;
-
