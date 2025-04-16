@@ -124,4 +124,3 @@ const ClientProfileSetup = () => {
 };
 
 export default ClientProfileSetup;
-
