@@ -7,6 +7,7 @@ import ClientDashboard from './pages/ClientDashboard';
 import FreelancerDashboard from './pages/FreelancerDashboard';
 import JobPosting from './pages/JobPosting';
 import JobListing from './pages/JobListing';
+import JobApplication from './pages/JobApplication';
 import ProfileSetup from './pages/ProfileSetup';
 import ClientProfileSetup from './pages/ClientProfileSetup';
 import FreelancerProfileSetup from './pages/FreelancerProfileSetup';
@@ -25,6 +26,7 @@ function App() {
         <Route path="/freelancer-dashboard" element={<FreelancerDashboard />} />
         <Route path="/job-posting" element={<JobPosting />} />
         <Route path="/job-listing" element={<JobListing />} />
+        <Route path="/job-application/:jobId" element={<JobApplication />} />
         <Route path="/client-profile-setup" element={<ClientProfileSetup />} />
         <Route path="/freelancer-profile-setup" element={<FreelancerProfileSetup />} />
       </Routes>

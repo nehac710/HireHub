@@ -1,204 +1,206 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import '../styles/JobListing.css';
 
 const JobListing = () => {
-  const [filters, setFilters] = useState({
-    category: 'All',
-    experience: 'All',
-    search: ''
-  });
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedSkills, setSelectedSkills] = useState([]);
+  const [allSkills, setAllSkills] = useState([]);
+  const navigate = useNavigate();
 
-  // Sample job data - in a real app, this would come from your backend
-  const [jobs] = useState([
-    {
-      id: 1,
-      title: 'Senior React Developer',
-      company: 'Tech Solutions Inc.',
-      description: 'We are looking for an experienced React developer to join our team. The ideal candidate should have strong experience with React, Node.js, and modern web development practices. You will be responsible for developing and maintaining our web applications, implementing new features, and ensuring high performance and responsiveness.',
-      requirements: [
-        '5+ years of experience with React and JavaScript',
-        'Strong understanding of state management (Redux/Context)',
-        'Experience with RESTful APIs and GraphQL',
-        'Knowledge of modern build tools and CI/CD pipelines',
-        'Excellent problem-solving skills'
-      ],
-      budget: 5000,
-      duration: '3 months',
-      category: 'Web Development',
-      experience: 'Expert',
-      skills: ['React', 'Node.js', 'TypeScript', 'Redux', 'GraphQL'],
-      posted: '2 days ago',
-      location: 'Remote',
-      type: 'Full-time'
-    },
-    {
-      id: 2,
-      title: 'UI/UX Designer',
-      company: 'Creative Studio',
-      description: 'We need a creative UI/UX designer to help us create beautiful and intuitive user interfaces. The ideal candidate should have a strong portfolio demonstrating their design skills and experience with modern design tools. You will work closely with our development team to create user-centered designs that meet business requirements.',
-      requirements: [
-        '3+ years of UI/UX design experience',
-        'Proficiency in Figma and Adobe Creative Suite',
-        'Strong understanding of user-centered design principles',
-        'Experience with design systems and component libraries',
-        'Excellent communication and collaboration skills'
-      ],
-      budget: 3000,
-      duration: '2 months',
-      category: 'Design',
-      experience: 'Intermediate',
-      skills: ['Figma', 'Adobe XD', 'UI Design', 'UX Research', 'Prototyping'],
-      posted: '1 day ago',
-      location: 'Remote',
-      type: 'Contract'
-    },
-    {
-      id: 3,
-      title: 'Content Writer',
-      company: 'Digital Marketing Agency',
-      description: 'We are seeking a skilled content writer to create engaging and SEO-optimized content for our clients. The ideal candidate should have experience writing for various industries and be able to adapt their writing style to different audiences. You will be responsible for creating blog posts, website content, and marketing materials.',
-      requirements: [
-        '2+ years of content writing experience',
-        'Strong research and writing skills',
-        'Knowledge of SEO best practices',
-        'Ability to meet deadlines',
-        'Experience with content management systems'
-      ],
-      budget: 1500,
-      duration: '1 month',
-      category: 'Writing',
-      experience: 'Entry Level',
-      skills: ['Content Writing', 'SEO', 'Blogging', 'Copywriting', 'Research'],
-      posted: '5 hours ago',
-      location: 'Remote',
-      type: 'Part-time'
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  useEffect(() => {
+    // Extract unique skills from all jobs
+    const skills = new Set();
+    jobs.forEach(job => {
+      if (job.skills_required) {
+        job.skills_required.forEach(skill => skills.add(skill));
+      }
+    });
+    setAllSkills(Array.from(skills).sort());
+  }, [jobs]);
+
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('status', 'open')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setJobs(data || []);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-  ]);
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
   };
 
-  const handleApply = (jobId) => {
-    // Here you would typically handle the application process
-    console.log('Applying for job:', jobId);
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
+  };
+
+  const handleSkillToggle = (skill) => {
+    setSelectedSkills(prev => 
+      prev.includes(skill)
+        ? prev.filter(s => s !== skill)
+        : [...prev, skill]
+    );
+  };
+
+  const handleApply = async (jobId) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      // Check if user is a freelancer
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+      if (profile.role !== 'freelancer') {
+        setError('Only freelancers can apply for jobs');
+        return;
+      }
+
+      // Navigate to job application form with job details
+      navigate(`/job-application/${jobId}`);
+    } catch (error) {
+      setError(error.message);
+    }
   };
 
   const filteredJobs = jobs.filter(job => {
-    const matchesCategory = filters.category === 'All' || job.category === filters.category;
-    const matchesExperience = filters.experience === 'All' || job.experience === filters.experience;
-    const matchesSearch = job.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-                         job.description.toLowerCase().includes(filters.search.toLowerCase());
-    return matchesCategory && matchesExperience && matchesSearch;
+    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         job.public_id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !selectedCategory || job.category === selectedCategory;
+    const matchesSkills = selectedSkills.length === 0 || 
+                         (job.skills_required && 
+                          selectedSkills.every(skill => job.skills_required.includes(skill)));
+    return matchesSearch && matchesCategory && matchesSkills;
   });
+
+  if (loading) {
+    return (
+      <div className="job-listing-container">
+        <div className="loading">Loading jobs...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="job-listing-container">
+        <div className="error-message">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="job-listing-container">
       <div className="job-listing-header">
-        <h1>Available Jobs</h1>
+        <h1>Find Work</h1>
         <div className="filters">
           <input
             type="text"
-            name="search"
-            value={filters.search}
-            onChange={handleFilterChange}
-            placeholder="Search jobs..."
+            placeholder="Search by title, description or project ID..."
+            value={searchTerm}
+            onChange={handleSearch}
             className="search-input"
           />
           <select
-            name="category"
-            value={filters.category}
-            onChange={handleFilterChange}
-            className="filter-select"
+            value={selectedCategory}
+            onChange={handleCategoryChange}
+            className="category-select"
           >
-            <option value="All">All Categories</option>
-            <option value="Web Development">Web Development</option>
-            <option value="Mobile Development">Mobile Development</option>
-            <option value="Design">Design</option>
-            <option value="Writing">Writing</option>
-            <option value="Marketing">Marketing</option>
+            <option value="">All Categories</option>
+            <option value="web-development">Web Development</option>
+            <option value="mobile-development">Mobile Development</option>
+            <option value="design">Design</option>
+            <option value="writing">Writing</option>
+            <option value="marketing">Marketing</option>
+            <option value="other">Other</option>
           </select>
-          <select
-            name="experience"
-            value={filters.experience}
-            onChange={handleFilterChange}
-            className="filter-select"
-          >
-            <option value="All">All Experience Levels</option>
-            <option value="Entry Level">Entry Level</option>
-            <option value="Intermediate">Intermediate</option>
-            <option value="Expert">Expert</option>
-          </select>
+        </div>
+        <div className="skills-filter-container">
+          {allSkills.map(skill => (
+            <span
+              key={skill}
+              className={`skill-filter-tag ${selectedSkills.includes(skill) ? 'selected' : ''}`}
+              onClick={() => handleSkillToggle(skill)}
+            >
+              {skill}
+            </span>
+          ))}
         </div>
       </div>
 
       <div className="job-list">
-        {filteredJobs.map(job => (
-          <div key={job.id} className="job-card">
-            <div className="job-header">
-              <h2>{job.title}</h2>
-              <span className="company">{job.company}</span>
-            </div>
-            
-            <div className="job-meta">
-              <span className="job-type">{job.type}</span>
-              <span className="job-location">{job.location}</span>
-            </div>
-
-            <div className="job-description">
-              <h3>Description</h3>
-              <p>{job.description}</p>
-            </div>
-
-            <div className="job-requirements">
-              <h3>Requirements</h3>
-              <ul>
-                {job.requirements.map((requirement, index) => (
-                  <li key={index}>{requirement}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="job-details">
-              <div className="detail">
-                <span className="label">Budget:</span>
-                <span className="value">${job.budget}</span>
+        {filteredJobs.length === 0 ? (
+          <div className="no-jobs">No jobs found matching your criteria</div>
+        ) : (
+          filteredJobs.map((job) => (
+            <div key={job.id} className="job-card">
+              <div className="job-header">
+                <div className="job-title-section">
+                  <h2>{job.title}</h2>
+                  <div className="project-id">Project ID: {job.public_id}</div>
+                </div>
+                <div className="job-meta">
+                  <span className="job-type">{job.category}</span>
+                </div>
               </div>
-              <div className="detail">
-                <span className="label">Duration:</span>
-                <span className="value">{job.duration}</span>
+
+              <div className="job-description">
+                <p>{job.description}</p>
               </div>
-              <div className="detail">
-                <span className="label">Category:</span>
-                <span className="value">{job.category}</span>
+
+              <div className="job-details">
+                <div className="budget">
+                  <span>Budget: ${job.budget_min} - ${job.budget_max}</span>
+                </div>
+                <div className="skills">
+                  {job.skills_required.map((skill, index) => (
+                    <span key={index} className="skill-tag">{skill}</span>
+                  ))}
+                </div>
+                <div className="deadline">
+                  <span>Deadline: {new Date(job.deadline).toLocaleDateString()}</span>
+                </div>
               </div>
-              <div className="detail">
-                <span className="label">Experience:</span>
-                <span className="value">{job.experience}</span>
+
+              <div className="job-footer">
+                <button
+                  className="btn-primary"
+                  onClick={() => handleApply(job.id)}
+                >
+                  Apply Now
+                </button>
               </div>
             </div>
-
-            <div className="skills">
-              {job.skills.map((skill, index) => (
-                <span key={index} className="skill-tag">{skill}</span>
-              ))}
-            </div>
-
-            <div className="job-footer">
-              <span className="posted-time">Posted {job.posted}</span>
-              <button 
-                className="btn btn-primary"
-                onClick={() => handleApply(job.id)}
-              >
-                Apply Now
-              </button>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
