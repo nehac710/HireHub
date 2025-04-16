@@ -34,15 +34,31 @@ const BidManagement = () => {
         // Fetch freelancer profiles for each bid
         const bidsWithProfiles = await Promise.all(
           bidsData.map(async (bid) => {
-            const { data: freelancerProfile } = await supabase
+            const { data: freelancerProfile, error: profileError } = await supabase
               .from('freelancer_profiles')
               .select('display_name, skills, rating')
-              .eq('user_id', bid.freelancer_id)
+              .eq('id', bid.freelancer_id)
               .single();
+
+            if (profileError) {
+              console.error('Error fetching freelancer profile:', profileError);
+              return {
+                ...bid,
+                freelancer_profile: {
+                  display_name: 'Unknown Freelancer',
+                  skills: [],
+                  rating: null
+                }
+              };
+            }
 
             return {
               ...bid,
-              freelancer_profile: freelancerProfile || {}
+              freelancer_profile: freelancerProfile || {
+                display_name: 'Unknown Freelancer',
+                skills: [],
+                rating: null
+              }
             };
           })
         );
@@ -61,6 +77,15 @@ const BidManagement = () => {
 
   const handleAcceptBid = async (bidId) => {
     try {
+      // Get the accepted bid to get the freelancer_id
+      const { data: acceptedBid, error: bidError } = await supabase
+        .from('bids')
+        .select('freelancer_id')
+        .eq('id', bidId)
+        .single();
+
+      if (bidError) throw bidError;
+
       // Update the bid status to accepted
       const { error: updateError } = await supabase
         .from('bids')
@@ -78,10 +103,13 @@ const BidManagement = () => {
 
       if (rejectError) throw rejectError;
 
-      // Update project status
+      // Update project status and set the freelancer_id
       const { error: projectError } = await supabase
         .from('projects')
-        .update({ status: 'in_progress' })
+        .update({ 
+          status: 'in_progress',
+          freelancer_id: acceptedBid.freelancer_id
+        })
         .eq('id', projectId);
 
       if (projectError) throw projectError;
@@ -93,7 +121,39 @@ const BidManagement = () => {
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
-      setBids(updatedBids);
+      // Fetch freelancer profiles for each bid
+      const bidsWithProfiles = await Promise.all(
+        updatedBids.map(async (bid) => {
+          const { data: freelancerProfile, error: profileError } = await supabase
+            .from('freelancer_profiles')
+            .select('display_name, skills, rating')
+            .eq('id', bid.freelancer_id)
+            .single();
+
+          if (profileError) {
+            console.error('Error fetching freelancer profile:', profileError);
+            return {
+              ...bid,
+              freelancer_profile: {
+                display_name: 'Unknown Freelancer',
+                skills: [],
+                rating: null
+              }
+            };
+          }
+
+          return {
+            ...bid,
+            freelancer_profile: freelancerProfile || {
+              display_name: 'Unknown Freelancer',
+              skills: [],
+              rating: null
+            }
+          };
+        })
+      );
+
+      setBids(bidsWithProfiles);
     } catch (err) {
       setError(err.message);
     }

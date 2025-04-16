@@ -61,7 +61,6 @@ const JobApplication = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setNotification(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -71,15 +70,31 @@ const JobApplication = () => {
         return;
       }
 
-      // Check if user is a freelancer
-      const { data: freelancerProfile } = await supabase
+      // Check if user is a freelancer by checking user_profiles table
+      const { data: userProfile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      if (!userProfile || userProfile.role !== 'freelancer') {
+        setError('Only freelancers can apply for jobs');
+        return;
+      }
+
+      // Get freelancer profile ID
+      const { data: freelancerProfile, error: freelancerError } = await supabase
         .from('freelancer_profiles')
         .select('id')
         .eq('user_id', user.id)
         .single();
 
+      if (freelancerError) throw freelancerError;
+
       if (!freelancerProfile) {
-        setError('Only freelancers can apply for jobs');
+        setError('Please complete your freelancer profile before applying for jobs');
         return;
       }
 
@@ -92,7 +107,7 @@ const JobApplication = () => {
         .single();
 
       if (existingBid) {
-        setNotification('You have already submitted a bid for this project');
+        setError('You have already submitted a bid for this project');
         return;
       }
 
