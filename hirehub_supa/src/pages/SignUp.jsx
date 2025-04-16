@@ -47,8 +47,8 @@ const SignUp = () => {
 
       if (authError) throw authError;
 
-      // Redirect to login page after successful signup
-      navigate('/login');
+      // Redirect to profile setup page after successful signup
+      navigate('/profile-setup');
     } catch (error) {
       setError(error.message);
     } finally {

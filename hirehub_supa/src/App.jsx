@@ -7,6 +7,9 @@ import ClientDashboard from './pages/ClientDashboard';
 import FreelancerDashboard from './pages/FreelancerDashboard';
 import JobPosting from './pages/JobPosting';
 import JobListing from './pages/JobListing';
+import ProfileSetup from './pages/ProfileSetup';
+import ClientProfileSetup from './pages/ClientProfileSetup';
+import FreelancerProfileSetup from './pages/FreelancerProfileSetup';
 import './App.css';
 
 function App() {
@@ -17,11 +20,13 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/login" element={<Login />} />
-        {/* Temporary test routes */}
-        <Route path="/test/client-dashboard" element={<ClientDashboard />} />
-        <Route path="/test/freelancer-dashboard" element={<FreelancerDashboard />} />
+        <Route path="/profile-setup" element={<ProfileSetup />} />
+        <Route path="/client-dashboard" element={<ClientDashboard />} />
+        <Route path="/freelancer-dashboard" element={<FreelancerDashboard />} />
         <Route path="/test/job-posting" element={<JobPosting />} />
         <Route path="/test/job-listing" element={<JobListing />} />
+        <Route path="/client-profile-setup" element={<ClientProfileSetup />} />
+        <Route path="/freelancer-profile-setup" element={<FreelancerProfileSetup />} />
       </Routes>
     </Router>
   );
