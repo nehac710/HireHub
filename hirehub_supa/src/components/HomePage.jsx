@@ -1,7 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleButtonClick = (path) => {
+    if (!isLoggedIn) {
+      alert('Please log in to continue');
+      navigate('/login');
+    } else {
+      navigate(path);
+    }
+  };
+
   return (
     <div className="home">
       <section className="hero">
@@ -9,8 +40,18 @@ const HomePage = () => {
           <h1>Find the Perfect Freelancer for Your Project</h1>
           <p>Connect with top talent from around the world and get your work done efficiently</p>
           <div className="hero-buttons">
-            <button className="hero-button primary">Post a Project</button>
-            <button className="hero-button secondary">Find Work</button>
+            <button 
+              onClick={() => handleButtonClick('/test/job-posting')} 
+              className="hero-button primary"
+            >
+              Post a Job
+            </button>
+            <button 
+              onClick={() => handleButtonClick('/test/job-listing')} 
+              className="hero-button secondary"
+            >
+              Find Work
+            </button>
           </div>
           <div className="hero-stats">
             <div className="stat">
