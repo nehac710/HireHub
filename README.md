@@ -1,44 +1,32 @@
-# Hirehub
-## Course project for CS254- Database Systems Lab
+# 🚀 HireHub – A Freelancing Marketplace
 
-### Running the repository
+HireHub is a full-stack web application that reimagines the traditional hiring model by introducing **real-time job bidding**. Instead of submitting fixed resumes and waiting, job seekers can **place competitive bids** on job postings — enabling recruiters to choose candidates based on value, timeline, and proposals.
 
---> Move into the directory where we have the project files : 
-```bash
-cd HireHub
+---
 
-```
+## ✨ Features
 
---> Create a virtual environment :
-```bash
-# Let's install virtualenv first
-pip install virtualenv
+- 🧑‍💼 **Role-based Access** – Separate dashboards for Recruiters and Job Seekers  
+- 💸 **Job Bidding System** – Applicants can bid on job listings in real-time  
+- 🔔 **Live Bid Updates** – Automatically reflect new bids without refreshing  
+- 🔐 **Secure Authentication** – Supabase Auth for signup/login  
+- 🗃️ **Bid History** – Track and sort all bids per job  
+- 📊 **Job Management** – Recruiters can post, close, and monitor job listings  
 
-# Then we create our virtual environment
-virtualenv envname
+---
 
-```
+## 🛠️ Tech Stack
 
---> Activate the virtual environment :
-```bash
-envname\scripts\activate
+| Layer         | Technology                       |
+|---------------|----------------------------------|
+| Frontend      | React.js, Tailwind CSS           |
+| Backend (BaaS)| Supabase (PostgreSQL, Auth, Realtime) |
+| Database      | Supabase PostgreSQL              |
+| Hosting       | (Optional: Netlify / Vercel)     |
+| Version Control| Git + GitHub                    |
 
-```
+---
 
---> Install django within the environment :
-```bash
-pip install django
 
-```
 
-#
 
-### Running the App
-
---> To run the App, we use :
-```bash
-python manage.py runserver
-
-```
-
-> ⚠ Then, the development server will be started at http://127.0.0.1:8000/
